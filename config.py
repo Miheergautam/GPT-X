@@ -56,5 +56,6 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 SEED = 1337
 
 # Data paths
-DATA_PATH = "/Users/miheergautam/Documents/GitHub/GPT-X/dataset.txt"
+# DATA_PATH = "/Users/miheergautam/Documents/GitHub/GPT-X/dataset.txt"
+DATA_PATH = "./dataset.txt"
 OUTPUT_PATH = "generated_output.txt"
