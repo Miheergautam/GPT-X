@@ -217,7 +217,7 @@ class Block(nn.Module):
 
 class GPTLanguageModel(nn.Module):
     """
-    Complete GPT language model.
+    GPT-X language model.
 
     Architecture:
     1. Token + Position embeddings

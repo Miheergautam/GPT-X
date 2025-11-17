@@ -4,21 +4,50 @@ Configuration file for GPT model hyperparameters and training settings.
 This centralizes all model and training configurations for easy modification.
 """
 
+"""
+PARAMETER CALCULATION (~20M):
+- Token Embeddings: vocab_size × N_EMBD = 8000 × 384 = 3.07M
+- Position Embeddings: BLOCK_SIZE × N_EMBD = 256 × 384 = 0.10M
+- Per Layer (×6):
+  * Multi-head Attention: 4 × (N_EMBD × N_EMBD) = 4 × 147,456 = 0.59M
+  * Feed-Forward: 2 × (N_EMBD × 4×N_EMBD) = 2 × 589,824 = 1.18M
+  * Layer Norms: ~0.001M
+  * Total per layer: ~1.77M
+  * 6 layers: ~10.62M
+- Final Layer Norm: ~0.001M
+- LM Head: N_EMBD × vocab_size = 384 × 8000 = 3.07M
+TOTAL: ~16.86M (scales to ~20M with larger vocab)
+"""
+
 import torch
 
-# Training hyperparameters
-BATCH_SIZE = 32  # Number of sequences processed in parallel
-BLOCK_SIZE = 128  # Maximum context length for predictions
-MAX_ITERS = 4000  # Total training iterations
-EVAL_INTERVAL = 500  # Evaluate model every N iterations
-LEARNING_RATE = 3e-4  # Learning rate for optimizer
-EVAL_ITERS = 50  # Number of iterations to average for loss estimation
+# Context and batch settings
+BLOCK_SIZE = 256    # Context length (increased from 128)
+BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 
-# Model architecture hyperparameters
-N_EMBD = 128  # Embedding dimension size
-N_HEAD = 4  # Number of attention heads
-N_LAYER = 2  # Number of transformer blocks
-DROPOUT = 0.3  # Dropout rate for regularization
+# TRAINING HYPERPARAMETERS
+MAX_ITERS = 10000           # Training iterations (increased from 4000)
+EVAL_INTERVAL = 500         # Evaluate every 500 steps
+LEARNING_RATE = 3e-4        # Standard for Transformers
+EVAL_ITERS = 100            # Average over more batches for stable metrics
+
+# Core dimensions
+N_EMBD = 384        # Embedding dimension (increased from 128)
+N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
+N_LAYER = 6         # Number of transformer layers (increased from 2)
+DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
+
+# Learning rate schedule (warmup + cosine decay)
+WARMUP_ITERS = 1000         # Warmup steps
+LR_DECAY_ITERS = 10000      # Total decay period
+MIN_LR = 3e-5               # Minimum learning rate (10% of max)
+
+# Gradient clipping for stability
+GRAD_CLIP = 1.0             # Clip gradients to prevent exploding gradients
+
+# TOKENIZER SETTINGS - Critical for Hindi
+VOCAB_SIZE = 8000           # Target vocabulary (increased from 500)
+MIN_FREQUENCY = 3           # Minimum merge frequency (stricter filtering)
 
 # Device configuration
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,7 +58,3 @@ SEED = 1337
 # Data paths
 DATA_PATH = "/Users/miheergautam/Documents/GitHub/GPT-X/dataset.txt"
 OUTPUT_PATH = "generated_output.txt"
-
-# BPE tokenizer settings
-VOCAB_SIZE = 500  # Target vocabulary size for BPE (will be adjusted during training)
-MIN_FREQUENCY = 2  # Minimum frequency for BPE merges

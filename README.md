@@ -9,53 +9,53 @@
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 1: DATA LOADING & PREPROCESSING (data_loader.py)         │
+│  STEP 1: DATA LOADING & PREPROCESSING (data_loader.py)          │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ 1. Load dataset.txt file                                 │  │
-│  │ 2. Clean text (remove non-Hindi characters)             │  │
-│  │ 3. Normalize whitespace                                  │  │
-│  │ 4. Remove short lines                                    │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ 1. Load dataset.txt file                                 │   │
+│  │ 2. Clean text (remove non-Hindi characters)              │   │
+│  │ 3. Normalize whitespace                                  │   │
+│  │ 4. Remove short lines                                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 2: TOKENIZATION (tokenizer.py)                           │
+│  STEP 2: TOKENIZATION (tokenizer.py)                            │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ BPE Tokenizer Training Process:                          │  │
-│  │                                                           │  │
-│  │ a) Split text into characters                            │  │
-│  │    "hello" → ['h', 'e', 'l', 'l', 'o', '</w>']          │  │
-│  │                                                           │  │
-│  │ b) Count character pair frequencies                      │  │
-│  │    ('l', 'l') appears 50 times                          │  │
-│  │    ('e', 'l') appears 30 times                          │  │
-│  │                                                           │  │
-│  │ c) Merge most frequent pair                              │  │
-│  │    ['h', 'e', 'll', 'o', '</w>']                        │  │
-│  │                                                           │  │
-│  │ d) Repeat until vocabulary size reached                  │  │
-│  │    Build ~500 tokens (subword units)                     │  │
-│  │                                                           │  │
-│  │ e) Create token ↔ ID mappings                           │  │
-│  │    token_to_id: {'h': 0, 'e': 1, 'll': 2, ...}         │  │
-│  │    id_to_token: {0: 'h', 1: 'e', 2: 'll', ...}         │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ BPE Tokenizer Training Process:                          │   │
+│  │                                                          │   │
+│  │ a) Split text into characters                            │   │
+│  │    "hello" → ['h', 'e', 'l', 'l', 'o', '</w>']           │   │
+│  │                                                          │   │
+│  │ b) Count character pair frequencies                      │   │
+│  │    ('l', 'l') appears 50 times                           │   │
+│  │    ('e', 'l') appears 30 times                           │   │
+│  │                                                          │   │
+│  │ c) Merge most frequent pair                              │   │
+│  │    ['h', 'e', 'll', 'o', '</w>']                         │   │
+│  │                                                          │   │
+│  │ d) Repeat until vocabulary size reached                  │   │
+│  │    Build ~500 tokens (subword units)                     │   │
+│  │                                                          │   │
+│  │ e) Create token ↔ ID mappings                            │   │
+│  │    token_to_id: {'h': 0, 'e': 1, 'll': 2, ...}           │   │
+│  │    id_to_token: {0: 'h', 1: 'e', 2: 'll', ...}           │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 3: ENCODE TEXT TO TOKEN IDS                              │
+│  STEP 3: ENCODE TEXT TO TOKEN IDS                               │
 │                                                                 │
-│  Text: "नमस्ते दुनिया"                                         │
+│  Text: "नमस्ते दुनिया"                                               │
 │    ↓                                                            │
-│  Tokens: ['नम', 'स्', 'ते', ' ', 'दु', 'नि', 'या', '</w>']   │
+│  Tokens: ['नम', 'स्', 'ते', ' ', 'दु', 'नि', 'या', '</w>']           │
 │    ↓                                                            │
-│  Token IDs: [45, 12, 89, 3, 67, 34, 91, 1]                    │
+│  Token IDs: [45, 12, 89, 3, 67, 34, 91, 1]                      │
 │                                                                 │
-│  Create train/val split: 90% train, 10% validation            │
+│  Create train/val split: 90% train, 10% validation              │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼

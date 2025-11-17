@@ -138,6 +138,7 @@ class DataProcessor:
         4. Create train/val split
         """
         # Load and clean text
+        print("Loading and cleaning text...")
         text = load_and_clean_text(self.file_path)
 
         # Train tokenizer on the text

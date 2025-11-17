@@ -1,13 +1,9 @@
 # tokenizer.py
 """
-Optimized Byte Pair Encoding (BPE) Tokenizer implementation.
+Byte Pair Encoding (BPE) Tokenizer implementation.
 BPE iteratively merges the most frequent pairs of tokens to build a vocabulary.
-This version includes optimized encoding for faster processing.
 """
-
-import re
 from collections import Counter, defaultdict
-
 
 class BPETokenizer:
     """

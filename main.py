@@ -25,7 +25,7 @@ def main():
     torch.manual_seed(SEED)
     
     print("="*60)
-    print("GPT Language Model Training Pipeline")
+    print("GPT-X Training Pipeline")
     print("="*60)
     
     # Step 1: Initialize tokenizer
@@ -50,41 +50,41 @@ def main():
     total_params = sum(p.numel() for p in model.parameters())
     print(f"Model parameters: {total_params/1e6:.2f}M")
     
-    # Step 4: Train model
-    print("\n[Step 4/5] Training Model...")
-    trainer = Trainer(model, data_processor)
-    trainer.train()
+    # # Step 4: Train model
+    # print("\n[Step 4/5] Training Model...")
+    # trainer = Trainer(model, data_processor)
+    # trainer.train()
     
     # Optionally save the model
     # trainer.save_model('gpt_model.pth')
     
-    # Step 5: Generate text
-    print("\n[Step 5/5] Generating Text...")
-    print("-"*60)
+    # # Step 5: Generate text
+    # print("\n[Step 5/5] Generating Text...")
+    # print("-"*60)
     
-    # Start with empty context
-    context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
+    # # Start with empty context
+    # context = torch.zeros((1, 1), dtype=torch.long, device=DEVICE)
     
-    # Generate tokens
-    generated_ids = model.generate(context, max_new_tokens=10000)[0].tolist()
+    # # Generate tokens
+    # generated_ids = model.generate(context, max_new_tokens=10000)[0].tolist()
     
-    # Decode to text
-    generated_text = tokenizer.decode(generated_ids)
+    # # Decode to text
+    # generated_text = tokenizer.decode(generated_ids)
     
-    # Print to console (first 500 characters)
-    print("\nGenerated Text (preview):")
-    print("-"*60)
-    print(generated_text[:500])
-    print("...\n")
+    # # Print to console (first 500 characters)
+    # print("\nGenerated Text (preview):")
+    # print("-"*60)
+    # print(generated_text[:500])
+    # print("...\n")
     
-    # Save full generated text to file
-    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
-        f.write(generated_text)
+    # # Save full generated text to file
+    # with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
+    #     f.write(generated_text)
     
-    print(f"Full generated text saved to: {OUTPUT_PATH}")
-    print("\n" + "="*60)
-    print("Pipeline Complete!")
-    print("="*60)
+    # print(f"Full generated text saved to: {OUTPUT_PATH}")
+    # print("\n" + "="*60)
+    # print("Pipeline Complete!")
+    # print("="*60)
 
 
 if __name__ == "__main__":
