@@ -19,7 +19,7 @@ BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 MAX_ITERS = 4000           # Training iterations (increased from 4000)
 EVAL_INTERVAL = 500         # Evaluate every 500 steps
 LEARNING_RATE = 3e-4        # Standard for Transformers
-EVAL_ITERS = 200            # Average over more batches for stable metrics
+EVAL_ITERS = 100            # Average over more batches for stable metrics
 
 # Core dimensions
 N_EMBD = 432        # Embedding dimension (increased from 128)

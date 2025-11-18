@@ -1,3 +1,4 @@
+# model_rope_rms.py
 """
 GPT-X model using:
 - RoPE (Rotary Positional Embeddings)
