@@ -5,18 +5,7 @@ This centralizes all model and training configurations for easy modification.
 """
 
 """
-PARAMETER CALCULATION (~20M):
-- Token Embeddings: vocab_size × N_EMBD = 8000 × 384 = 3.07M
-- Position Embeddings: BLOCK_SIZE × N_EMBD = 256 × 384 = 0.10M
-- Per Layer (×6):
-  * Multi-head Attention: 4 × (N_EMBD × N_EMBD) = 4 × 147,456 = 0.59M
-  * Feed-Forward: 2 × (N_EMBD × 4×N_EMBD) = 2 × 589,824 = 1.18M
-  * Layer Norms: ~0.001M
-  * Total per layer: ~1.77M
-  * 6 layers: ~10.62M
-- Final Layer Norm: ~0.001M
-- LM Head: N_EMBD × vocab_size = 384 × 8000 = 3.07M
-TOTAL: ~16.86M (scales to ~20M with larger vocab)
+Hyperparameters for GPT-X model
 """
 
 import torch
