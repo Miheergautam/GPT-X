@@ -1,5 +1,5 @@
 """
-GPT-X Training + Generation Pipeline (FAST BPE Version)
+GPT-X Training + Generation Pipeline 
 """
 
 import torch
@@ -60,21 +60,10 @@ def main():
     # 4. TRAINING
     # ---------------------------------------
     print("\n[Step 4/5] Training Model...")
-
     trainer = Trainer(model, data_processor)
     trainer.train()
 
-    # ---------------------------------------
-    # LOAD BEST CHECKPOINT BEFORE GENERATION
-    # ---------------------------------------
-    best_ckpt = "best_model.pth"
-    if os.path.exists(best_ckpt):
-        print("\nLoading BEST checkpoint for generation...")
-        ckpt = torch.load(best_ckpt, map_location=DEVICE)
-        model.load_state_dict(ckpt["model"])
-        print("Loaded best checkpoint.")
-    else:
-        print("\n⚠ No best checkpoint found. Using last trained model.")
+    # trainer.save_model("gpt_model.pth")
 
     # ---------------------------------------
     # 5. TEXT GENERATION
@@ -88,9 +77,9 @@ def main():
     # Generate tokens
     generated_ids = model.generate(
         idx=context,
-        max_new_tokens=2000,
-        temperature=1.0,
-        top_k=50,
+        max_new_tokens=2000,        # you can increase this anytime
+        temperature=1.0,            # adjustable
+        top_k=50,                   # cleaner output
     )[0].tolist()
 
     # Decode
