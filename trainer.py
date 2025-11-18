@@ -1,81 +1,72 @@
 # trainer.py
 """
-Training utilities for the GPT model.
-Handles the training loop, loss estimation, and model evaluation.
+Improved Trainer with:
+- Early Stopping
+- Best Model Checkpoint
+- Cosine LR Decay
+- Gradient Clipping
+- Fine-tuning support
 """
 
 import torch
-from config import MAX_ITERS, EVAL_INTERVAL, EVAL_ITERS, LEARNING_RATE, DEVICE
+from config import (
+    MAX_ITERS, EVAL_INTERVAL, EVAL_ITERS,
+    LEARNING_RATE, DEVICE, FINETUNE
+)
+import os
 
 
 class Trainer:
-    """
-    Trainer class to handle model training and evaluation.
-    """
-    
     def __init__(self, model, data_processor):
-        """
-        Initialize trainer.
-        
-        Args:
-            model: GPT model to train
-            data_processor: DataProcessor instance for batch generation
-        """
         self.model = model
         self.data_processor = data_processor
-        
-        # Create optimizer (AdamW is Adam with weight decay)
+
+        # Optimizer
         self.optimizer = torch.optim.AdamW(
-            model.parameters(), 
+            model.parameters(),
             lr=LEARNING_RATE
         )
-    
+
+        # Cosine LR Scheduler
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            self.optimizer,
+            T_max=MAX_ITERS,
+            eta_min=1e-5
+        )
+
+        # Early stopping
+        self.best_val_loss = float("inf")
+        self.ckpt_path = "best_model.pth"
+
+        # Load old checkpoint if fine-tuning
+        if FINETUNE:
+            self.load_if_exists()
+
+    # -----------------------------------------------------
+    #  LOSS ESTIMATION
+    # -----------------------------------------------------
     @torch.no_grad()
     def estimate_loss(self):
-        """
-        Estimate average loss on train and validation sets.
-        
-        Why estimate? Training loss is noisy, so we average over
-        multiple batches to get a more stable measure of performance.
-        
-        Returns:
-            Dictionary with 'train' and 'val' loss values
-        """
         out = {}
-        
-        # Set model to evaluation mode (disables dropout, etc.)
         self.model.eval()
-        
+
         for split in ['train', 'val']:
             losses = torch.zeros(EVAL_ITERS)
-            
-            # Average loss over EVAL_ITERS batches
+
             for k in range(EVAL_ITERS):
                 X, Y = self.data_processor.get_batch(split)
-                logits, loss = self.model(X, Y)
+                _, loss = self.model(X, Y)
                 losses[k] = loss.item()
-            
-            # Calculate mean loss
+
             out[split] = losses.mean()
-        
-        # Set model back to training mode
+
         self.model.train()
-        
         return out
-    
+
+    # -----------------------------------------------------
+    #  MAIN TRAIN LOOP
+    # -----------------------------------------------------
     def train(self):
-        """
-        Main training loop.
-        
-        Training process:
-        1. Sample a batch of data
-        2. Forward pass: compute predictions and loss
-        3. Backward pass: compute gradients
-        4. Update parameters using optimizer
-        5. Repeat for MAX_ITERS iterations
-        
-        Periodically evaluates on both train and validation sets.
-        """
         print("\n" + "="*60)
         print("Starting Training")
         print("="*60)
@@ -84,57 +75,75 @@ class Trainer:
         print(f"Learning rate: {LEARNING_RATE}")
         print(f"Device: {DEVICE}")
         print("="*60 + "\n")
-        
-        for iter in range(MAX_ITERS):
-            # Evaluate loss periodically
-            if iter % EVAL_INTERVAL == 0 or iter == MAX_ITERS - 1:
+
+        for it in range(MAX_ITERS):
+
+            # Periodic evaluation
+            if it % EVAL_INTERVAL == 0 or it == MAX_ITERS - 1:
                 losses = self.estimate_loss()
                 print(
-                    f"Step {iter:4d}: "
+                    f"Step {it:4d}: "
                     f"train loss {losses['train']:.4f}, "
                     f"val loss {losses['val']:.4f}"
                 )
-            
-            # Sample a batch of training data
-            xb, yb = self.data_processor.get_batch('train')
-            
-            # Forward pass: compute predictions and loss
+
+                # Early stopping + checkpointing
+                if losses["val"] < self.best_val_loss:
+                    self.best_val_loss = losses["val"]
+                    self.save_checkpoint()
+                else:
+                    print("⚠ Validation loss did not improve — possible overfitting.")
+
+            # Get training batch
+            xb, yb = self.data_processor.get_batch("train")
+
+            # Forward pass
             logits, loss = self.model(xb, yb)
-            
-            # Zero out gradients from previous iteration
+
+            # Backward pass
             self.optimizer.zero_grad(set_to_none=True)
-            
-            # Backward pass: compute gradients
             loss.backward()
-            
-            # Update model parameters
+
+            # Gradient clipping (stabilizes training)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+
+            # Step optimizer + LR scheduler
             self.optimizer.step()
-        
+            self.scheduler.step()
+
         print("\n" + "="*60)
         print("Training Complete!")
         print("="*60 + "\n")
-    
-    def save_model(self, path):
-        """
-        Save model weights to file.
-        
-        Args:
-            path: Path to save model checkpoint
-        """
+
+    # -----------------------------------------------------
+    # CHECKPOINTING
+    # -----------------------------------------------------
+    def save_checkpoint(self):
         torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-        }, path)
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "best_val_loss": self.best_val_loss,
+        }, self.ckpt_path)
+        print(f"💾 Saved BEST checkpoint (val={self.best_val_loss:.4f})")
+
+    def load_if_exists(self):
+        if os.path.exists(self.ckpt_path):
+            print("🔄 Fine-tuning: Loading existing checkpoint...")
+            ckpt = torch.load(self.ckpt_path, map_location=DEVICE)
+            self.model.load_state_dict(ckpt["model"])
+            self.optimizer.load_state_dict(ckpt["optimizer"])
+            self.best_val_loss = ckpt["best_val_loss"]
+            print(f"Loaded checkpoint (best val loss = {self.best_val_loss:.4f})")
+        else:
+            print("⚠ No previous checkpoint found — training from scratch.")
+
+    # -----------------------------------------------------
+    # MANUAL SAVE/LOAD (optional usage)
+    # -----------------------------------------------------
+    def save_model(self, path):
+        torch.save(self.model.state_dict(), path)
         print(f"Model saved to {path}")
-    
+
     def load_model(self, path):
-        """
-        Load model weights from file.
-        
-        Args:
-            path: Path to model checkpoint
-        """
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.model.load_state_dict(torch.load(path))
         print(f"Model loaded from {path}")

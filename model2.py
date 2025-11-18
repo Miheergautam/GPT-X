@@ -1,8 +1,10 @@
-# model_rope_rms.py
 """
-GPT-X model using:
-- RoPE (Rotary Positional Embeddings)
-- RMSNorm (instead of LayerNorm)
+GPT-X Model 2 (Final):
+- RoPE (Rotary Position Embedding)
+- RMSNorm
+- Dropout (Training Stability)
+- FlashAttention fallback
+- Stable initialization for fine-tuning
 """
 
 import torch
@@ -10,7 +12,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from config import N_EMBD, N_HEAD, N_LAYER, DROPOUT, BLOCK_SIZE
 
-# RMSNorm 
+
+# ============================================================
+# RMSNorm
+# ============================================================
 
 class RMSNorm(nn.Module):
     def __init__(self, dim, eps=1e-8):
@@ -19,56 +24,41 @@ class RMSNorm(nn.Module):
         self.weight = nn.Parameter(torch.ones(dim))
 
     def forward(self, x):
-        # x: (B, T, C)
         norm = x.pow(2).mean(-1, keepdim=True).add(self.eps).sqrt()
         return x * (self.weight / norm)
 
 
 # ============================================================
-# RoPE helpers
+# Rotary Positional Embeddings (RoPE)
 # ============================================================
 
 def build_rope_cache(seq_len, dim, device):
-    """
-    Build cos/sin rotation cache for RoPE.
-    dim must be even (each pair forms a rotation).
-    """
-    assert dim % 2 == 0, "Head dimension must be even for RoPE."
+    assert dim % 2 == 0
+    half = dim // 2
 
-    half_dim = dim // 2
-    inv_freq = 1.0 / (10000 ** (torch.arange(0, half_dim, 1, device=device).float() / half_dim))
-
+    inv_freq = 1.0 / (10000 ** (torch.arange(0, half, device=device).float() / half))
     t = torch.arange(seq_len, device=device).float()
-    freqs = torch.einsum("i,j->ij", t, inv_freq)  # (T, half_dim)
+    freqs = torch.einsum("i,j->ij", t, inv_freq)
 
-    cos = freqs.cos()
-    sin = freqs.sin()
-
-    # Expand to full dim by interleaving (x0, x1) → (cos, sin) pairs
-    cos = torch.repeat_interleave(cos, 2, dim=-1)  # (T, dim)
-    sin = torch.repeat_interleave(sin, 2, dim=-1)  # (T, dim)
-
+    cos = torch.repeat_interleave(freqs.cos(), 2, dim=-1)
+    sin = torch.repeat_interleave(freqs.sin(), 2, dim=-1)
     return cos, sin
 
 
 def apply_rope(x, cos, sin):
-    """
-    x: (B, n_head, T, head_dim)
-    cos/sin: (T, head_dim)
-    """
-
-    # Rotate half trick: (x_even, x_odd) -> (-x_odd, x_even)
     x1 = x[..., ::2]
     x2 = x[..., 1::2]
     x_rot = torch.stack([-x2, x1], dim=-1).reshape_as(x)
 
-    cos = cos.unsqueeze(0).unsqueeze(0)  # (1,1,T,H)
+    cos = cos.unsqueeze(0).unsqueeze(0)
     sin = sin.unsqueeze(0).unsqueeze(0)
 
     return x * cos + x_rot * sin
 
 
-# Multi-Head Self-Attention with RoPE
+# ============================================================
+# Multi-Head Attention with RoPE
+# ============================================================
 
 class MultiHeadAttentionRoPE(nn.Module):
     def __init__(self, n_embd, n_head):
@@ -79,26 +69,23 @@ class MultiHeadAttentionRoPE(nn.Module):
         self.head_dim = n_embd // n_head
         self.scale = self.head_dim ** -0.5
 
-        # single fused linear for q/k/v
         self.qkv = nn.Linear(n_embd, 3 * n_embd, bias=False)
         self.out_proj = nn.Linear(n_embd, n_embd)
 
-        # dropout
         self.dropout = nn.Dropout(DROPOUT)
 
-        # causal mask
+        # Causal mask
         self.register_buffer("mask", torch.tril(torch.ones(BLOCK_SIZE, BLOCK_SIZE)))
 
-        # rope cache (built later on proper device)
+        # RoPE cache
         self.rope_cos = None
         self.rope_sin = None
 
     def _prepare_rope(self, device):
-        """Build RoPE cache if not existing or wrong device."""
         if self.rope_cos is None or self.rope_cos.device != device:
-            cos, sin = build_rope_cache(BLOCK_SIZE, self.head_dim, device)
-            self.rope_cos = cos
-            self.rope_sin = sin
+            self.rope_cos, self.rope_sin = build_rope_cache(
+                BLOCK_SIZE, self.head_dim, device
+            )
 
     def forward(self, x):
         B, T, C = x.shape
@@ -106,38 +93,35 @@ class MultiHeadAttentionRoPE(nn.Module):
 
         self._prepare_rope(device)
 
-        # qkv projection
-        qkv = self.qkv(x)  # (B, T, 3C)
-        qkv = qkv.view(B, T, 3, self.n_head, self.head_dim)
-        qkv = qkv.permute(2, 0, 3, 1, 4)  # (3, B, n_head, T, head_dim)
+        qkv = self.qkv(x)
+        qkv = qkv.view(B, T, 3, self.n_head, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        # apply rotary embeddings
+        # Apply RoPE
         cos = self.rope_cos[:T]
         sin = self.rope_sin[:T]
         q = apply_rope(q, cos, sin)
         k = apply_rope(k, cos, sin)
 
-        # attention scores
-        att = torch.matmul(q, k.transpose(-2, -1)) * self.scale
+        # ============================================================
+        # FlashAttention fallback (more stability)
+        # ============================================================
+        try:
+            from torch.nn.functional import scaled_dot_product_attention
+            out = scaled_dot_product_attention(q, k, v, dropout_p=DROPOUT if self.training else 0)
+        except:
+            att = torch.matmul(q, k.transpose(-2, -1)) * self.scale
+            att = att.masked_fill(self.mask[:T, :T] == 0, float('-inf'))
+            att = F.softmax(att, dim=-1)
+            att = self.dropout(att)
+            out = torch.matmul(att, v)
 
-        # causal mask
-        att = att.masked_fill(self.mask[:T, :T] == 0, float('-inf'))
-
-        # softmax
-        att = F.softmax(att, dim=-1)
-        att = self.dropout(att)
-
-        # attention output
-        out = torch.matmul(att, v)  # (B, n_head, T, head_dim)
         out = out.permute(0, 2, 1, 3).reshape(B, T, C)
-
-        out = self.out_proj(out)
-        return out
+        return self.out_proj(out)
 
 
 # ============================================================
-# Feed-Forward Network (same as original)
+# Feed-Forward Network
 # ============================================================
 
 class FeedForward(nn.Module):
@@ -145,7 +129,7 @@ class FeedForward(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(n_embd, 4 * n_embd),
-            nn.ReLU(),
+            nn.GELU(),
             nn.Linear(4 * n_embd, n_embd),
             nn.Dropout(DROPOUT),
         )
@@ -161,10 +145,10 @@ class FeedForward(nn.Module):
 class Block(nn.Module):
     def __init__(self, n_embd, n_head):
         super().__init__()
-        self.attn = MultiHeadAttentionRoPE(n_embd, n_head)
         self.norm1 = RMSNorm(n_embd)
-        self.ff = FeedForward(n_embd)
+        self.attn = MultiHeadAttentionRoPE(n_embd, n_head)
         self.norm2 = RMSNorm(n_embd)
+        self.ff = FeedForward(n_embd)
 
     def forward(self, x):
         x = x + self.attn(self.norm1(x))
@@ -181,8 +165,8 @@ class GPTLanguageModel(nn.Module):
         super().__init__()
 
         self.token_emb = nn.Embedding(vocab_size, N_EMBD)
+        self.drop = nn.Dropout(DROPOUT)  # ⭐ NEW: embedding dropout
 
-        # NO position embeddings → RoPE replaces them
         self.blocks = nn.Sequential(
             *[Block(N_EMBD, N_HEAD) for _ in range(N_LAYER)]
         )
@@ -202,9 +186,11 @@ class GPTLanguageModel(nn.Module):
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
-        tok = self.token_emb(idx)  # (B, T, C)
 
-        x = self.blocks(tok)
+        x = self.token_emb(idx)
+        x = self.drop(x)  # ⭐ NEW: dropout
+
+        x = self.blocks(x)
         x = self.norm_f(x)
         logits = self.lm_head(x)
 
@@ -217,21 +203,23 @@ class GPTLanguageModel(nn.Module):
         )
         return logits, loss
 
+    # Stable text generation
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
         for _ in range(max_new_tokens):
             idx_cond = idx[:, -BLOCK_SIZE:]
+
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :] / max(temperature, 1e-6)
 
-            if top_k is not None:
+            if top_k:
                 v, ix = torch.topk(logits, top_k)
                 logits = torch.full_like(logits, float("-inf"))
                 logits.scatter_(1, ix, v)
 
             probs = F.softmax(logits, dim=-1)
-            next_token = torch.multinomial(probs, 1)
+            next_tok = torch.multinomial(probs, 1)
 
-            idx = torch.cat((idx, next_token), dim=1)
+            idx = torch.cat((idx, next_tok), dim=1)
 
         return idx

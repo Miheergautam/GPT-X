@@ -8,17 +8,18 @@ This centralizes all model and training configurations for easy modification.
 Hyperparameters for GPT-X model
 """
 
+from tkinter.constants import TRUE
 import torch
 
 # Context and batch settings
-BLOCK_SIZE = 256    # Context length (increased from 128)
+BLOCK_SIZE = 512    # Context length (increased from 128)
 BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 
 # TRAINING HYPERPARAMETERS
-MAX_ITERS = 10000           # Training iterations (increased from 4000)
+MAX_ITERS = 4000           # Training iterations (increased from 4000)
 EVAL_INTERVAL = 500         # Evaluate every 500 steps
 LEARNING_RATE = 3e-4        # Standard for Transformers
-EVAL_ITERS = 100            # Average over more batches for stable metrics
+EVAL_ITERS = 200            # Average over more batches for stable metrics
 
 # Core dimensions
 N_EMBD = 432        # Embedding dimension (increased from 128)
@@ -43,6 +44,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Random seed for reproducibility
 SEED = 1337
+FINETUNE = True
 
 # Data paths
 # DATA_PATH = "/Users/miheergautam/Documents/GitHub/GPT-X/dataset.txt"
