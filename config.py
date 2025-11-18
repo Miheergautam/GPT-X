@@ -32,7 +32,7 @@ LEARNING_RATE = 3e-4        # Standard for Transformers
 EVAL_ITERS = 100            # Average over more batches for stable metrics
 
 # Core dimensions
-N_EMBD = 384        # Embedding dimension (increased from 128)
+N_EMBD = 432        # Embedding dimension (increased from 128)
 N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
 N_LAYER = 6         # Number of transformer layers (increased from 2)
 DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
