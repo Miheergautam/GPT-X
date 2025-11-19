@@ -15,7 +15,7 @@ def main():
     torch.manual_seed(SEED)
 
     print("="*60)
-    print("GPT-X Training Pipeline (FAST Version)")
+    print("GPT-X Training Pipeline")
     print("="*60)
 
     # ---------------------------------------

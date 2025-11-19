@@ -8,11 +8,10 @@ This centralizes all model and training configurations for easy modification.
 Hyperparameters for GPT-X model
 """
 
-from tkinter.constants import TRUE
 import torch
 
 # Context and batch settings
-BLOCK_SIZE = 512    # Context length (increased from 128)
+BLOCK_SIZE = 256    # Context length (increased from 128)
 BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 
 # TRAINING HYPERPARAMETERS
@@ -22,21 +21,21 @@ LEARNING_RATE = 3e-4        # Standard for Transformers
 EVAL_ITERS = 100            # Average over more batches for stable metrics
 
 # Core dimensions
-N_EMBD = 432        # Embedding dimension (increased from 128)
+N_EMBD = 384        # Embedding dimension (increased from 128)
 N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
 N_LAYER = 6         # Number of transformer layers (increased from 2)
 DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
 
 # Learning rate schedule (warmup + cosine decay)
 WARMUP_ITERS = 1000         # Warmup steps
-LR_DECAY_ITERS = 10000      # Total decay period
+LR_DECAY_ITERS = 4000      # Total decay period
 MIN_LR = 3e-5               # Minimum learning rate (10% of max)
 
 # Gradient clipping for stability
 GRAD_CLIP = 1.0             # Clip gradients to prevent exploding gradients
 
 # TOKENIZER SETTINGS - Critical for Hindi
-VOCAB_SIZE = 8000           # Target vocabulary (increased from 500)
+VOCAB_SIZE = 8000           
 MIN_FREQUENCY = 3           # Minimum merge frequency (stricter filtering)
 
 # Device configuration
