@@ -27,8 +27,15 @@ class Trainer:
         # Create optimizer (AdamW is Adam with weight decay)
         self.optimizer = torch.optim.AdamW(
             model.parameters(), 
-            lr=LEARNING_RATE
+            lr=LEARNING_RATE,
+            weight_decay=0.1,      # ← EDIT #1
+            betas=(0.9, 0.95)      # (recommended for transformers)
         )
+        # LR Schedule parameters
+        self.warmup_iters = 1000           # EDIT #2
+        self.min_lr = LEARNING_RATE / 10   # EDIT #2
+        self.max_lr = LEARNING_RATE        # EDIT #2
+        self.total_iters = MAX_ITERS       # EDIT #2
     
     @torch.no_grad()
     def estimate_loss(self):
@@ -62,6 +69,17 @@ class Trainer:
         self.model.train()
         
         return out
+        
+    def get_lr(self, it):
+        # EDIT #3
+        # Linear warmup
+        if it < self.warmup_iters:
+            return self.max_lr * (it / self.warmup_iters)
+    
+        # Cosine decay
+        progress = (it - self.warmup_iters) / max(1, self.total_iters - self.warmup_iters)
+        cosine_decay = 0.5 * (1 + torch.cos(torch.pi * progress))
+        return self.min_lr + (self.max_lr - self.min_lr) * cosine_decay
     
     def train(self):
         """
@@ -106,6 +124,11 @@ class Trainer:
             
             # Backward pass: compute gradients
             loss.backward()
+            
+            # Update learning rate
+            lr = self.get_lr(iter)
+            for param_group in self.optimizer.param_groups:
+                param_group["lr"] = lr
             
             # Update model parameters
             self.optimizer.step()

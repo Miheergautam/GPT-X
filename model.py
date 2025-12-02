@@ -144,8 +144,11 @@ class Block(nn.Module):
         self.ln2 = nn.LayerNorm(n_embd)
 
     def forward(self, x, cos, sin):
-        x = x + self.sa(self.ln1(x), cos, sin)
-        x = x + self.ffwd(self.ln2(x))
+        # x = x + self.sa(self.ln1(x), cos, sin)
+        x = x + F.dropout(self.sa(self.ln1(x), cos, sin), p=DROPOUT, training=self.training)
+        # x = x + self.ffwd(self.ln2(x))
+        x = x + F.dropout(self.ffwd(self.ln2(x)), p=DROPOUT, training=self.training)
+
         return x
 
 
