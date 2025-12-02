@@ -10,20 +10,36 @@ Hyperparameters for GPT-X model
 
 import torch
 
-# Context and batch settings
-BLOCK_SIZE = 256    # Context length (increased from 128)
-BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
+# # Context and batch settings -- 1st
+# BLOCK_SIZE = 256    # Context length (increased from 128)
+# BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 
-# TRAINING HYPERPARAMETERS
-MAX_ITERS = 4000           # Training iterations (increased from 4000)
+# Context and batch settings -- 2nd
+BLOCK_SIZE = 256    # Context length (increased from 128)
+BATCH_SIZE = 8     # Batch size (increased for better gradient estimates)
+
+# TRAINING HYPERPARAMETERS -> 1st
+# MAX_ITERS = 4000           # Training iterations (increased from 4000)
+# EVAL_INTERVAL = 500         # Evaluate every 500 steps
+# LEARNING_RATE = 3e-4        # Standard for Transformers
+# EVAL_ITERS = 100            # Average over more batches for stable metrics
+
+# TRAINING HYPERPARAMETERS -> 2nd
+MAX_ITERS = 7000           # Training iterations (increased from 4000)
 EVAL_INTERVAL = 500         # Evaluate every 500 steps
 LEARNING_RATE = 3e-4        # Standard for Transformers
-EVAL_ITERS = 100            # Average over more batches for stable metrics
+EVAL_ITERS = 200            # Average over more batches for stable metrics
 
-# Core dimensions
-N_EMBD = 384        # Embedding dimension (increased from 128)
-N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
-N_LAYER = 6         # Number of transformer layers (increased from 2)
+# # Core dimensions 1st 
+# N_EMBD = 384        # Embedding dimension (increased from 128)
+# N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
+# N_LAYER = 6         # Number of transformer layers (increased from 2)
+# DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
+
+# Core dimensions 1st 
+N_EMBD = 256       # Embedding dimension (increased from 128)
+N_HEAD = 4          # Number of attention heads (384 / 6 = 64 per head)
+N_LAYER = 4         # Number of transformer layers (increased from 2)
 DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
 
 # Learning rate schedule (warmup + cosine decay)
