@@ -15,8 +15,8 @@ import torch
 # BATCH_SIZE = 64     # Batch size (increased for better gradient estimates)
 
 # Context and batch settings -- 2nd
-BLOCK_SIZE = 256    # Context length (increased from 128)
-BATCH_SIZE = 8     # Batch size (increased for better gradient estimates)
+BLOCK_SIZE = 512    # Context length (increased from 128)
+BATCH_SIZE = 16     # Batch size (increased for better gradient estimates)
 
 # TRAINING HYPERPARAMETERS -> 1st
 # MAX_ITERS = 4000           # Training iterations (increased from 4000)
@@ -25,7 +25,7 @@ BATCH_SIZE = 8     # Batch size (increased for better gradient estimates)
 # EVAL_ITERS = 100            # Average over more batches for stable metrics
 
 # TRAINING HYPERPARAMETERS -> 2nd
-MAX_ITERS = 7000           # Training iterations (increased from 4000)
+MAX_ITERS = 10000           # Training iterations (increased from 4000)
 EVAL_INTERVAL = 500         # Evaluate every 500 steps
 LEARNING_RATE = 3e-4        # Standard for Transformers
 EVAL_ITERS = 200            # Average over more batches for stable metrics
@@ -65,3 +65,13 @@ FINETUNE = True
 # DATA_PATH = "/Users/miheergautam/Documents/GitHub/GPT-X/dataset.txt"
 DATA_PATH = "./dataset.txt"
 OUTPUT_PATH = "generated_output.txt"
+
+
+
+
+
+
+# 1st
+# 2nd
+
+# 3rd -> blocksize 512, iterations = 10000, batchsize=16
