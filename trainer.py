@@ -71,15 +71,19 @@ class Trainer:
         return out
         
     def get_lr(self, it):
-        # EDIT #3
         # Linear warmup
         if it < self.warmup_iters:
             return self.max_lr * (it / self.warmup_iters)
-    
-        # Cosine decay
+        
+        # Cosine decay for the rest
         progress = (it - self.warmup_iters) / max(1, self.total_iters - self.warmup_iters)
-        cosine_decay = 0.5 * (1 + torch.cos(torch.pi * progress))
+        
+        # FIX: convert progress to tensor for torch.cos
+        prog_tensor = torch.tensor(progress, device=self.model.lm_head.weight.device)
+        cosine_decay = 0.5 * (1 + torch.cos(torch.pi * prog_tensor))
+        
         return self.min_lr + (self.max_lr - self.min_lr) * cosine_decay
+
     
     def train(self):
         """
