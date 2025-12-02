@@ -38,7 +38,7 @@ EVAL_ITERS = 200            # Average over more batches for stable metrics
 
 # Core dimensions 1st 
 N_EMBD = 512       # Embedding dimension (increased from 128)
-N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
+N_HEAD = 8          # Number of attention heads (384 / 6 = 64 per head)
 N_LAYER = 6         # Number of transformer layers (increased from 2)
 DROPOUT = 0.1       # Dropout rate (reduced from 0.3 for larger model)
 
