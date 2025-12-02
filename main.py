@@ -77,7 +77,7 @@ def main():
     generated_ids = model.generate(
         idx=context,
         max_new_tokens=1000,
-        temperature=1.0,
+        temperature=0.7,
         top_k=50,
     )[0].tolist()
 

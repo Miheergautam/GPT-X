@@ -37,10 +37,10 @@ EVAL_ITERS = 200            # Average over more batches for stable metrics
 # DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
 
 # Core dimensions 1st 
-N_EMBD = 256       # Embedding dimension (increased from 128)
-N_HEAD = 4          # Number of attention heads (384 / 6 = 64 per head)
-N_LAYER = 4         # Number of transformer layers (increased from 2)
-DROPOUT = 0.2       # Dropout rate (reduced from 0.3 for larger model)
+N_EMBD = 384       # Embedding dimension (increased from 128)
+N_HEAD = 6          # Number of attention heads (384 / 6 = 64 per head)
+N_LAYER = 6         # Number of transformer layers (increased from 2)
+DROPOUT = 0.1       # Dropout rate (reduced from 0.3 for larger model)
 
 # Learning rate schedule (warmup + cosine decay)
 WARMUP_ITERS = 1000         # Warmup steps
@@ -75,3 +75,4 @@ OUTPUT_PATH = "generated_output.txt"
 # 2nd
 
 # 3rd -> blocksize 512, iterations = 10000, batchsize=16
+# 4th model increase -> dblock = 384 heads= 6 and layers =6
